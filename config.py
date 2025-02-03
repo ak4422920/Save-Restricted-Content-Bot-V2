@@ -3,8 +3,8 @@
 
 from os import getenv
 
-API_ID = int(getenv("API_ID", "29171167"))
-API_HASH = getenv("API_HASH", "7ea2149629e445936619f06a3c0dc716")
+API_ID = int(getenv("API_ID", ""))
+API_HASH = getenv("API_HASH", "")
 BOT_TOKEN = getenv("BOT_TOKEN", "")
 OWNER_ID = list(map(int, getenv("OWNER_ID", "7251898668").split()))
 MONGO_DB = getenv("MONGO_DB", "")
