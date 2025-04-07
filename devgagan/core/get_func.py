@@ -82,7 +82,10 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
         upload_method = await fetch_upload_method(sender)  # Fetch the upload method (Pyrogram or Telethon)
         metadata = video_metadata(file)
         width, height, duration = metadata['width'], metadata['height'], metadata['duration']
-        thumb_path = await screenshot(file, duration, sender)
+        try:
+            thumb_path = await screenshot(file, duration, sender)
+        except Exception:
+            thumb_path = None
 
         video_formats = {'mp4', 'mkv', 'avi', 'mov'}
         document_formats = {'pdf', 'docx', 'txt', 'epub'}
@@ -140,7 +143,8 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 gf, file,
                 reply=progress_message,
                 name=None,
-                progress_bar_function=lambda done, total: progress_callback(done, total, sender)
+                progress_bar_function=lambda done, total: progress_callback(done, total, sender),
+                user_id=sender
             )
             await progress_message.delete()
 
@@ -159,6 +163,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 caption=caption,
                 attributes=attributes,
                 reply_to=topic_id,
+                parse_mode='html',
                 thumb=thumb_path
             )
             await gf.send_file(
@@ -166,6 +171,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                 uploaded,
                 caption=caption,
                 attributes=attributes,
+                parse_mode='html',
                 thumb=thumb_path
             )
 
@@ -175,7 +181,8 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
 
     finally:
         if thumb_path and os.path.exists(thumb_path):
-            os.remove(thumb_path)
+            if os.path.basename(thumb_path) != f"{sender}.jpg":  # Check if the filename is not {sender}.jpg
+                os.remove(thumb_path)
         gc.collect()
 
 
@@ -465,6 +472,7 @@ async def copy_message_with_chat_id(app, userbot, sender, chat_id, message_id, e
                 result = await app.send_photo(target_chat_id, file, caption=final_caption, reply_to_message_id=topic_id)
             elif msg.video or msg.document:
                 freecheck = await chk_user(chat_id, sender)
+                file_size = get_message_file_size(msg)
                 if file_size > size_limit and (freecheck == 1 or pro is None):
                     await edit.delete()
                     await split_and_upload_file(app, sender, target_chat_id, file, caption, topic_id)
@@ -664,7 +672,7 @@ async def callback_query_handler(event):
         await event.respond('Please send the photo you want to set as the thumbnail.')
     
     elif event.data == b'pdfwt':
-        await event.respond("Watermark is Pro+ Plan.. contact @kingofpatal")
+        await event.respond("This feature is not available yet in public repo...")
         return
 
     elif event.data == b'uploadmethod':
@@ -848,8 +856,10 @@ async def handle_large_file(file, sender, edit, caption):
     duration = metadata['duration']
     width = metadata['width']
     height = metadata['height']
-    
-    thumb_path = await screenshot(file, duration, sender)
+    try:
+        thumb_path = await screenshot(file, duration, sender)
+    except Exception:
+        thumb_path = None
     try:
         if file_extension in VIDEO_EXTENSIONS:
             dm = await pro.send_video(
